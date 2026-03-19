@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-gui-script minSpecVersion="2">
+    <title>A-Z+T</title>
+    <welcome file="welcome.html" mime-type="text/html"/>
+    <options customize="never" require-scripts="true" rootVolumeOnly="true"/>
+    <choices-outline>
+        <line choice="default">
+            <line choice="org.sil.azt"/>
+        </line>
+    </choices-outline>
+    <choice id="default"/>
+    <choice id="org.sil.azt" visible="false">
+        <pkg-ref id="org.sil.azt"/>
+    </choice>
+    <pkg-ref id="org.sil.azt" version="1.0.5" onConclusion="none">azt_component.pkg</pkg-ref>
+</installer-gui-script>

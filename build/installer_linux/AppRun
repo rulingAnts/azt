@@ -1,0 +1,4 @@
+#!/bin/bash
+# AppRun — entry point for A-Z+T Linux AppImage
+HERE="$(dirname "$(readlink -f "$0")")"
+exec "${HERE}/azt" "$@"

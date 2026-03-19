@@ -1,0 +1,253 @@
+name: Build Installers
+
+# Trigger manually only — does NOT run on push/PR.
+# Go to Actions tab → "Build Installers" → "Run workflow"
+on:
+  workflow_dispatch:
+
+env:
+  APP_VERSION: '1.0.5'   # keep in sync with program['version'] in main.py
+
+jobs:
+
+  # -------------------------------------------------------------------------
+  # macOS — builds both Apple Silicon (arm64) and Intel (x86_64)
+  # -------------------------------------------------------------------------
+  build-macos:
+    name: macOS ${{ matrix.label }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14     # arm64 (Apple Silicon / M1)
+            arch: arm64
+            label: Silicon
+          - os: macos-13     # x86_64 (Intel)
+            arch: x86_64
+            label: Intel
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify Python architecture
+        run: python3 -c "import platform; print('Python arch:', platform.machine())"
+
+      - name: Install system dependencies
+        run: brew install portaudio gettext
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/pip
+          key: pip-macos-${{ matrix.arch }}-${{ hashFiles('py_modules.py') }}
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pyinstaller \
+            pyaudio Pillow lxml psutil soundfile librosa \
+            "langcodes[data]" patiencediff reportlab svglib \
+            packaging numpy scipy
+
+      - name: Compile translations
+        run: python3 translations/compile.py || echo "Translation compile skipped (non-fatal)"
+
+      - name: Build app bundle
+        run: python3 -m PyInstaller azt.spec --clean --noconfirm
+
+      - name: Download Charis SIL font
+        run: |
+          curl -fL "https://software.sil.org/downloads/r/charis/CharisSIL-6.200.zip" \
+            -o CharisSIL.zip
+          unzip -q CharisSIL.zip -d CharisSIL_extracted
+
+      - name: Bundle fonts into app
+        run: |
+          mkdir -p "dist/A-Z+T.app/Contents/Resources/fonts"
+          find CharisSIL_extracted -name "*.ttf" \
+            -exec cp {} "dist/A-Z+T.app/Contents/Resources/fonts/" \;
+
+      - name: Build component .pkg
+        run: |
+          pkgbuild \
+            --component "dist/A-Z+T.app" \
+            --install-location /Applications \
+            --identifier org.sil.azt \
+            --version "$APP_VERSION" \
+            --scripts build/installer_macos/scripts \
+            azt_component.pkg
+
+      - name: Build distributable .pkg
+        run: |
+          productbuild \
+            --distribution build/installer_macos/distribution.xml \
+            --resources build/installer_macos/resources \
+            --package-path . \
+            "AZT-${{ env.APP_VERSION }}-macos-${{ matrix.arch }}.pkg"
+
+      - name: Create DMG
+        run: |
+          mkdir dmg_staging
+          cp "AZT-${{ env.APP_VERSION }}-macos-${{ matrix.arch }}.pkg" dmg_staging/
+          hdiutil create \
+            -volname "A-Z+T ${{ env.APP_VERSION }}" \
+            -srcfolder dmg_staging \
+            -ov -format UDZO \
+            "AZT-${{ env.APP_VERSION }}-macos-${{ matrix.arch }}.dmg"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AZT-macos-${{ matrix.arch }}
+          path: "AZT-${{ env.APP_VERSION }}-macos-${{ matrix.arch }}.dmg"
+          retention-days: 30
+
+  # -------------------------------------------------------------------------
+  # Windows — NSIS installer (x86_64)
+  # -------------------------------------------------------------------------
+  build-windows:
+    name: Windows x86_64
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\pip\Cache
+          key: pip-windows-${{ hashFiles('py_modules.py') }}
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pyinstaller `
+            pyaudio Pillow lxml psutil soundfile librosa `
+            "langcodes[data]" patiencediff reportlab svglib `
+            packaging numpy scipy
+
+      - name: Compile translations
+        run: python translations/compile.py
+        continue-on-error: true
+
+      - name: Build executable
+        run: python -m PyInstaller azt.spec --clean --noconfirm
+
+      - name: Download Charis SIL font
+        shell: pwsh
+        run: |
+          Invoke-WebRequest `
+            "https://software.sil.org/downloads/r/charis/CharisSIL-6.200.zip" `
+            -OutFile CharisSIL.zip
+          Expand-Archive CharisSIL.zip -DestinationPath CharisSIL_extracted -Force
+
+      - name: Collect fonts for NSIS
+        shell: pwsh
+        run: |
+          New-Item -Force -ItemType Directory build\installer_windows\fonts | Out-Null
+          Get-ChildItem -Recurse CharisSIL_extracted -Filter "*.ttf" |
+            Copy-Item -Destination build\installer_windows\fonts\
+
+      - name: Install NSIS
+        run: choco install nsis -y
+
+      - name: Build NSIS installer
+        run: makensis build\installer_windows\azt.nsi
+        shell: cmd
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AZT-windows-x86_64
+          path: "AZT-${{ env.APP_VERSION }}-windows-x86_64.exe"
+          retention-days: 30
+
+  # -------------------------------------------------------------------------
+  # Linux — AppImage (x86_64)
+  # -------------------------------------------------------------------------
+  build-linux:
+    name: Linux x86_64 (AppImage)
+    runs-on: ubuntu-22.04   # older glibc = broader compatibility
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            python3.12 python3.12-dev python3.12-tk \
+            portaudio19-dev \
+            gettext \
+            fuse libfuse2 \
+            patchelf
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-linux-${{ hashFiles('py_modules.py') }}
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pyinstaller \
+            pyaudio Pillow lxml psutil soundfile librosa \
+            "langcodes[data]" patiencediff reportlab svglib \
+            packaging numpy scipy
+
+      - name: Compile translations
+        run: python3 translations/compile.py || echo "Translation compile skipped (non-fatal)"
+
+      - name: Build executable
+        run: python3 -m PyInstaller azt.spec --clean --noconfirm
+
+      - name: Prepare AppDir
+        run: |
+          mkdir -p AppDir
+          cp -r dist/azt/. AppDir/
+          cp build/installer_linux/AppRun AppDir/
+          chmod +x AppDir/AppRun
+          cp build/installer_linux/azt.desktop AppDir/
+          cp "images/AZT green stacks_transparent_sm.png" AppDir/azt.png
+
+      - name: Download appimagetool
+        run: |
+          wget -q \
+            "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" \
+            -O appimagetool
+          chmod +x appimagetool
+
+      - name: Build AppImage
+        env:
+          ARCH: x86_64
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+        run: |
+          ./appimagetool AppDir \
+            "AZT-${{ env.APP_VERSION }}-linux-x86_64.AppImage"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AZT-linux-x86_64
+          path: "AZT-${{ env.APP_VERSION }}-linux-x86_64.AppImage"
+          retention-days: 30
