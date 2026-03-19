@@ -84,6 +84,21 @@ jobs:
             --scripts build/installer_macos/scripts \
             azt_component.pkg
 
+      - name: Build ASR component .pkg (scripts only, no payload)
+        run: |
+          chmod +x build/installer_macos/scripts/postinstall_asr
+          # --nopayload: this pkg installs nothing itself; its postinstall
+          # script creates a venv and pip-installs from PyPI at user request.
+          mkdir -p /tmp/asr_scripts
+          cp build/installer_macos/scripts/postinstall_asr /tmp/asr_scripts/postinstall
+          chmod +x /tmp/asr_scripts/postinstall
+          pkgbuild \
+            --nopayload \
+            --identifier org.sil.azt.asr \
+            --version "$APP_VERSION" \
+            --scripts /tmp/asr_scripts \
+            azt_asr_component.pkg
+
       - name: Build distributable .pkg
         run: |
           productbuild \
@@ -96,6 +111,17 @@ jobs:
         run: |
           mkdir dmg_staging
           cp "AZT-${{ env.APP_VERSION }}-macos-${{ matrix.arch }}.pkg" dmg_staging/
+          # README inside the DMG explains the optional ASR pkg
+          cat > dmg_staging/README.txt <<'EOF'
+          A-Z+T Installer
+          ===============
+          Double-click AZT-*.pkg to install A-Z+T.
+
+          During installation you will be offered an optional
+          "ASR Speech Recognition Features" component (~4 GB download).
+          You can leave this unchecked and install it later by
+          re-running the .pkg installer.
+          EOF
           hdiutil create \
             -volname "A-Z+T ${{ env.APP_VERSION }}" \
             -srcfolder dmg_staging \
@@ -229,6 +255,9 @@ jobs:
           chmod +x AppDir/AppRun
           cp build/installer_linux/azt.desktop AppDir/
           cp "images/AZT green stacks_transparent_sm.png" AppDir/azt.png
+          # Include the optional ASR installer script alongside the app
+          cp build/installer_linux/install-asr.sh AppDir/
+          chmod +x AppDir/install-asr.sh
 
       - name: Download appimagetool
         run: |

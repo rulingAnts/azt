@@ -23,6 +23,7 @@ ShowInstDetails show
 
 !include "MUI2.nsh"
 !include "WinMessages.nsh"
+!include "Sections.nsh"
 
 !define MUI_ABORTWARNING
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${APP_EXE}"
@@ -30,6 +31,7 @@ ShowInstDetails show
 
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_DIRECTORY
+!insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
 
@@ -85,6 +87,70 @@ Section "A-Z+T (required)" SecMain
     WriteRegDWORD HKLM "${UNINST_KEY}" "NoRepair" 1
 
 SectionEnd
+
+; ---------------------------------------------------------------------------
+; Optional: ASR / Speech Recognition features
+; Downloads PyTorch + Whisper (~4 GB) from PyPI into an isolated venv.
+; Unchecked by default. Requires internet connection.
+; Venv is created at %ProgramData%\AZT\asr-env\
+; A-Z+T's asr.py looks for %ProgramData%\AZT\asr-env-path.txt to find it.
+;
+Section /o "ASR Speech Recognition Features (~4 GB download)" SecASR
+
+    DetailPrint "Searching for Python 3..."
+    ; Try common install locations for Python 3.12, 3.11, 3.10
+    StrCpy $0 ""
+    ${If} ${FileExists} "$PROGRAMFILES64\Python312\python.exe"
+        StrCpy $0 "$PROGRAMFILES64\Python312\python.exe"
+    ${ElseIf} ${FileExists} "$PROGRAMFILES64\Python311\python.exe"
+        StrCpy $0 "$PROGRAMFILES64\Python311\python.exe"
+    ${ElseIf} ${FileExists} "$PROGRAMFILES64\Python310\python.exe"
+        StrCpy $0 "$PROGRAMFILES64\Python310\python.exe"
+    ${Else}
+        ; Fall back to whatever "python" resolves to on PATH
+        nsExec::ExecToStack 'where python'
+        Pop $1   ; exit code
+        Pop $0   ; stdout (first match)
+        ${If} $1 != 0
+            MessageBox MB_OK|MB_ICONEXCLAMATION \
+                "Python 3 was not found.$\n$\nPlease install Python 3 from https://www.python.org/ and re-run this installer, or install the ASR features manually:$\n  pip install torch openai-whisper transformers huggingface_hub[hf_xet]"
+            Goto done_asr
+        ${EndIf}
+    ${EndIf}
+
+    DetailPrint "Using Python: $0"
+    StrCpy $R0 "$COMMONPROGRAMDATA\AZT\asr-env"
+
+    DetailPrint "Creating venv at: $R0"
+    nsExec::ExecToLog '"$0" -m venv "$R0"'
+
+    DetailPrint "Upgrading pip..."
+    nsExec::ExecToLog '"$R0\Scripts\pip.exe" install --upgrade pip'
+
+    DetailPrint "Installing PyTorch, Whisper, Transformers (~4 GB from PyPI)..."
+    DetailPrint "This may take several minutes."
+    nsExec::ExecToLog '"$R0\Scripts\pip.exe" install torch openai-whisper transformers "huggingface_hub[hf_xet]"'
+    Pop $1
+    ${If} $1 != 0
+        MessageBox MB_OK|MB_ICONEXCLAMATION "ASR package installation encountered an error (code $1).$\nCheck your internet connection and try running the installer again."
+        Goto done_asr
+    ${EndIf}
+
+    ; Write marker file so A-Z+T can find the venv
+    FileOpen $2 "$COMMONPROGRAMDATA\AZT\asr-env-path.txt" w
+    FileWrite $2 "$R0"
+    FileClose $2
+
+    DetailPrint "ASR features installed successfully."
+    done_asr:
+
+SectionEnd
+
+; Section descriptions shown in the component selection page
+!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
+    !insertmacro MUI_DESCRIPTION_TEXT ${SecMain} "A-Z+T application and Charis SIL font. Required."
+    !insertmacro MUI_DESCRIPTION_TEXT ${SecASR} "Downloads and installs PyTorch and OpenAI Whisper (~4 GB) for speech recognition. Requires internet. Can be installed later by re-running this installer."
+!insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 ; ---------------------------------------------------------------------------
 Section "Uninstall"

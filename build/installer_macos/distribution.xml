@@ -2,15 +2,32 @@
 <installer-gui-script minSpecVersion="2">
     <title>A-Z+T</title>
     <welcome file="welcome.html" mime-type="text/html"/>
-    <options customize="never" require-scripts="true" rootVolumeOnly="true"/>
+    <!-- customize="allow" enables the component selection screen -->
+    <options customize="allow" require-scripts="true" rootVolumeOnly="true"/>
     <choices-outline>
         <line choice="default">
             <line choice="org.sil.azt"/>
+            <line choice="org.sil.azt.asr"/>
         </line>
     </choices-outline>
+
     <choice id="default"/>
+
+    <!-- Core application — always installed -->
     <choice id="org.sil.azt" visible="false">
         <pkg-ref id="org.sil.azt"/>
     </choice>
     <pkg-ref id="org.sil.azt" version="1.0.5" onConclusion="none">azt_component.pkg</pkg-ref>
+
+    <!-- Optional ASR/Speech Recognition features — unchecked by default -->
+    <!-- Downloads ~4 GB (PyTorch + Whisper) from PyPI at install time    -->
+    <choice id="org.sil.azt.asr"
+            title="ASR Speech Recognition Features (optional, ~4 GB download)"
+            description="Installs PyTorch and OpenAI Whisper into an isolated environment at /Library/Application Support/AZT/asr-env. Requires an internet connection. Download size is approximately 4 GB."
+            selected="false"
+            visible="true">
+        <pkg-ref id="org.sil.azt.asr"/>
+    </choice>
+    <pkg-ref id="org.sil.azt.asr" version="1.0.5" onConclusion="none">azt_asr_component.pkg</pkg-ref>
+
 </installer-gui-script>

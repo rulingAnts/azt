@@ -83,7 +83,7 @@ find CharisSIL_extracted -name "*.ttf" -exec cp {} "$FONT_DEST/" \;
 
 # --- 7. component .pkg -------------------------------------------------------
 echo ""
-echo "==> Building component .pkg..."
+echo "==> Building main component .pkg..."
 chmod +x build/installer_macos/scripts/postinstall
 pkgbuild \
     --component "dist/${APP_NAME}.app" \
@@ -92,6 +92,20 @@ pkgbuild \
     --version "$APP_VERSION" \
     --scripts build/installer_macos/scripts \
     azt_component.pkg
+
+# --- 7b. ASR component .pkg (scripts only; pip-installs from PyPI at user request)
+echo ""
+echo "==> Building optional ASR component .pkg..."
+chmod +x build/installer_macos/scripts/postinstall_asr
+ASR_SCRIPTS_TMP="$(mktemp -d)"
+cp build/installer_macos/scripts/postinstall_asr "$ASR_SCRIPTS_TMP/postinstall"
+pkgbuild \
+    --nopayload \
+    --identifier "${BUNDLE_ID}.asr" \
+    --version "$APP_VERSION" \
+    --scripts "$ASR_SCRIPTS_TMP" \
+    azt_asr_component.pkg
+rm -rf "$ASR_SCRIPTS_TMP"
 
 # --- 8. distributable .pkg ---------------------------------------------------
 echo ""
@@ -109,12 +123,22 @@ STAGING="dmg_staging_${ARCH}"
 rm -rf "$STAGING"
 mkdir "$STAGING"
 cp "${APP_NAME}-${APP_VERSION}-macos-${ARCH}.pkg" "$STAGING/"
+cat > "$STAGING/README.txt" <<'EOF'
+A-Z+T Installer
+===============
+Double-click AZT-*.pkg to install A-Z+T.
+
+During installation you will be offered an optional
+"ASR Speech Recognition Features" component (~4 GB download).
+You can leave this unchecked and install it later by
+re-running the .pkg installer.
+EOF
 hdiutil create \
     -volname "${APP_NAME} ${APP_VERSION}" \
     -srcfolder "$STAGING" \
     -ov -format UDZO \
     "${APP_NAME}-${APP_VERSION}-macos-${ARCH}.dmg"
-rm -rf "$STAGING" azt_component.pkg
+rm -rf "$STAGING" azt_component.pkg azt_asr_component.pkg
 
 # --- Done --------------------------------------------------------------------
 echo ""
