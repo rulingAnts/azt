@@ -152,13 +152,21 @@ list in `tests/test_import_smoke.py`.
 - i18n: all user-facing strings go through `utilities.i18n._` and land in
   Crowdin — confirm the workflow for adding new strings.
 
-## 7. Licensing constraint (read before copying any code)
+## 7. Licensing — settled
 
-`kent-rasmussen/azt` is **GPL-3.0**. `rulingAnts/dekereke-pa-data-source` is
-**AGPL-3.0-or-later**. AGPL-licensed source may not simply be dropped into a
-GPL-3.0 project. Seth holds the copyright on that repo, so the clean options
-are: (a) reimplement in Python from the *specification* above and from the
-sample data (facts and formats are not copyrightable), or (b) Seth explicitly
-dual-licenses the specific heuristics under GPL-3.0 for this contribution.
-**Default to (a)** — the C# is a reference for behavior, not a source to port
-line by line.
+- **Dekereke itself is Rod Casali's software** ([casali.canil.ca](https://casali.canil.ca/)).
+  Seth does not own it and no Dekereke code is involved. Only its *file format* is
+  read, from files the user already has. File formats are not copyrightable, and the
+  format facts here come from Seth's own databases and from anonymised samples.
+  Courtesy, not law: tell Rod that A-Z+T can read/write his format.
+- **`rulingAnts/dekereke-pa-data-source` is Seth's own work** (the Phonology Assistant
+  data-source add-on, written 2026-08). It is published AGPL-3.0, but Seth holds the
+  copyright and **has agreed to dual-license it** so its logic may be used in
+  GPL-3.0 A-Z+T. So the C# reader and its column-mapping heuristics are available as
+  a source, not merely as a behavioural reference.
+- Practically, still write **fresh Python** rather than transliterating C#: the target
+  here is XSLT + a thin lxml driver (§3), which shares no structure with the C#.
+  The value carried over is the *knowledge* — the encoding rules, the column-name
+  heuristics, the traps — not the code.
+- The contribution to `kent-rasmussen/azt` is therefore plain **GPL-3.0**, with no
+  third-party code and no licence notice to propagate.
