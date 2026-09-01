@@ -36,7 +36,7 @@ Five surfaces to pin down:
 5. **Identity and pairing** — already exists; make it data-type agnostic rather than
    redesigning it.
 
-**Design it against THREE cases on paper, build for one.** Over-fitting to a single
+**Design it against FIVE cases on paper, build for one.** Over-fitting to a single
 consumer is the main risk of doing the API first:
 - existing interlinear **text** assignments (the current, working case),
 - the **Tone Comparison** bundle (Phase 3's consumer),
@@ -49,7 +49,36 @@ payload; the bundler's grammatical-category / syllable-pattern / reference-numbe
 -> assignment scope; multi-speaker results + agreement statistics -> results merge. If the
 API cannot describe what that app already does, the API is wrong.
 
-**Done when:** a written API spec exists that all three cases can be expressed in.
+**Additional use cases Seth raised (2026-09-02) — file these into the design:**
+- **Scripture media trial content distribution.** His scripture-media trial-content app
+  currently ships `.smbundle` files that are "gigantic and unwieldy". Under the suite it
+  would instead **manage available content and limits on that content remotely, and sync
+  content and policy changes**. This case stretches the API in a direction the others do
+  not: it is not "send data out, get edited data back" but **content entitlement and
+  policy** — what a device is allowed to hold, for how long, revocable and updatable
+  remotely. The API needs device-level *policy* as a first-class concept, not just
+  device-level *settings*.
+- **Dictionary development (LIFT, not Dekereke).** Once a project graduates from phonology
+  database building to dictionary work, **LIFT is the right model** — senses, meaning
+  components, lexical relations, roots/stems, and an already-established written form.
+  That data genuinely is a tree.
+
+**Design conclusion that follows: the API must be payload-agnostic — flat-table AND tree.**
+Do not bake Dekereke's flat, speaker-columnar model into the assignment API. The same
+project is expected to move from Dekereke-shaped data (phonology stage, where symmetric
+speaker variation is the point) to LIFT-shaped data (dictionary stage, where hierarchy and
+relations are the point). Scoping/filtering therefore cannot assume "rows and columns" —
+it needs a general notion of "which part of the payload this assignee may see and edit"
+that degrades to rows/columns for tabular data and to subtrees/fields for tree data.
+
+**Corollary:** the Dekereke->LIFT converter is on the critical path for Seth's *own*
+workflow, not only for the A-Z+T contribution — it is how a project graduates from the
+phonology stage to the dictionary stage.
+
+**Done when:** a written API spec exists that all five cases can be expressed in.
+
+**Owner:** Seth wants **Fable** to do this planning work in a later session. Do not start
+it in a session focused on the A-Z+T pull request.
 
 ## Phase 3 — Tone Comparison App as a FlexText suite satellite
 
@@ -77,3 +106,36 @@ else's app) or flattening on the way in and losing the variation — which is th
 of using Dekereke. The integration that probably makes sense is **"the suite hands A-Z+T a
 project and takes it back"** — i.e. Phase 1's converter at a different scale — rather than
 A-Z+T running inside the suite. Decide this deliberately; do not drift into it.
+
+---
+
+## Open questions parked for Fable (not for the A-Z+T PR session)
+
+1. **The Phase 2 API design itself** (five use cases above), including the flat-vs-tree
+   payload-agnostic requirement and device-level *policy* as distinct from settings.
+
+2. **"How much am I reinventing the wheel?"** — Seth's own framing, 2026-09-02: A-Z+T looks
+   very similar in *intent* to his Tone Comparison App. He has already built his wheel; the
+   question is whether to keep extending it or to "use an existing wheel and maybe add
+   spokes or rims to it."
+
+   Evidence gathered today, for whoever takes this up — do not treat it as a verdict:
+   - **A-Z+T has no concept of multiple speakers or dialects** (`backend/langtags.py:461` is
+     the only hit, and it is incidental formatting). Capturing speaker/dialect variation is
+     a *primary* requirement for Lakes Plain languages. This is not a widget away — LIFT
+     gives one citation form per entry, and the sort/verify path is built on that.
+   - **The Tone Comparison App is already Dekereke-native**, already ships to Android
+     offline, already filters by category/syllable pattern/reference at bundling time, and
+     already compares multiple speakers with disagreement detection and agreement
+     statistics. A-Z+T does none of that.
+   - **A-Z+T has what the Tone Comparison App lacks:** cross-frame analysis (deriving
+     underlying-form groups from correspondences across syntactic frames) and XLingPaper
+     report generation. Seth's team has not reached those stages yet.
+   - **A-Z+T is further along than expected on a browser UI:** `frontend/ui_webview.py` is a
+     ~1,900-line pywebview backend with ~30 widget classes; `Electron_Conversion.md` has
+     Phases 0-8 done except drag-and-drop. It is a *local* webview, no server.
+   - Licensing permits porting A-Z+T (GPL-3.0) into the AGPL-3.0 FlexText suite; not the
+     reverse.
+
+   The honest shape of the question is probably not "replace one with the other" but
+   "which stages does each own, and what is the seam" — see DEKEREKE_DECISIONS.md #17.
