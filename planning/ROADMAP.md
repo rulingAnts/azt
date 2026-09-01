@@ -139,3 +139,24 @@ A-Z+T running inside the suite. Decide this deliberately; do not drift into it.
 
    The honest shape of the question is probably not "replace one with the other" but
    "which stages does each own, and what is the seam" — see DEKEREKE_DECISIONS.md #17.
+
+   **Seth's added consideration (2026-09-02):** A-Z+T has a very competent developer
+   actively developing and maintaining it. If Seth can use Kent's tool and *suggest*
+   modifications and fixes, maintaining a parallel app may not be worth his time and
+   energy — though how willing Kent is to take those suggestions remains to be seen. The
+   Dekereke PR is itself the cheapest possible experiment on that question: it will show
+   how Kent responds to an outside contribution before anything larger is bet on him.
+
+3. **The pywebview mini-shell idea (Seth, 2026-09-02) — promising, file it with Phase 4.**
+   Rather than running a Python app inside a PWA, keep A-Z+T installed natively on a
+   coworker's computer and add PWA-*ish* functionality alongside it: a small
+   pywebview-hosted browser shell that does nothing but the FlexText suite's
+   pairing and assignment send/receive interface. A-Z+T keeps its own data and UI; the
+   shell is a sync satellite that hands it a project and takes it back.
+
+   Why this is the right shape: it sidesteps the variation-axis problem entirely (nothing
+   is flattened on the way in — the shell moves whole projects, not rows), it needs no
+   change to A-Z+T's data model, and it reuses the pywebview dependency Kent is already
+   adding. It also means the suite's assignment API must support an assignment whose
+   payload is "a whole project file plus its audio", not only "filtered rows" — a sixth
+   case for the Phase 2 design.
