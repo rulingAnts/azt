@@ -160,3 +160,72 @@ A-Z+T running inside the suite. Decide this deliberately; do not drift into it.
    adding. It also means the suite's assignment API must support an assignment whose
    payload is "a whole project file plus its audio", not only "filtered rows" — a sixth
    case for the Phase 2 design.
+
+---
+
+## Status at end of 2026-09-02
+
+**Phase 1 is done and submitted.** PR: https://github.com/kent-rasmussen/azt/pull/173
+(branch `dekereke-import-export`, cut clean from `origin/main` — it carries only
+the four feature commits, none of the planning or research files on
+`dekereke-io-plan`).
+
+What is in it: `io_put/dekereke.py` + `dekereke_transforms/*.xsl` (XSLT both
+directions, per Kent's suggestion — no new dependency, mirrors `io_put/xlp.py`),
+the chooser entry and column-mapping dialog, `docs/DEKEREKE.md`, and 41 tests.
+Full suite on that branch: 283 passed, 7 skipped, 0 failed.
+
+Verified by hand against both anonymised sample databases (15-column UTF-8 and
+41-column UTF-16LE): both round-trip with **zero differing cells**, CRLF and BOM
+preserved, `<qvp_acoustic_data_>` blocks intact.
+
+**Bugs filed upstream** (AI-found, disclosed as such, on Kent's repo not the fork):
+- #169 `LiftXML.addentry()` — `utilities.xmletfns` has no `SubElement`; the only
+  create-an-entry path raises.
+- #170 `gettransformsdir()`/`getstylesheetdir()` resolve under `utilities/`, so
+  XLingPaper `compile()` always returns early — likely the whole reason the
+  XeLaTeX path "isn't working yet".
+- #171 `slicebyerror()` uses the renamed `Sense.cawln` — **fixed in the PR**,
+  because it blocks opening any non-CAWL database.
+- #172 `CONTEXT.md` documents the audio tag as `-x-audio`; the code builds
+  `-Zxxx-x-audio`.
+
+**Findings that change the AZT-vs-Tone-Comparison question** (see the parked
+question above — these are evidence, not a verdict):
+- A-Z+T **defers to a curated syllable-profile column**: it slices by the
+  confirmed profile and its fill-in pass refuses to overwrite one. The importer
+  now distinguishes a checked profile column from a generated one, so Seth's
+  researcher-curates-profiles workflow carries into A-Z+T intact.
+- Segment/sequence analysis **is** user-controlled (`Advanced` ▸ `Digraph and
+  Trigraph settings`) — the option Rod Casali declined to add to Dekereke. But
+  the defaults come from English/French *orthography*
+  (`backend/core/profiles.py:46`, tables for `en` and `fr` only), are chosen by
+  interface language when the analang has none, and are applied **silently** —
+  `polygraphcheck()` never prompts on first run, and never prompts at all for
+  polygraphs already in the English table (`ou`, `ei`, `oi`…).
+
+**Parked, not abandoned:**
+- **Indonesian translation.** Scoped: 1,684 strings, `translations/<locale>/
+  LC_MESSAGES/azt.{po,mo}`, discovered by folder scan (`main.py:184-192`) so it
+  needs **no code change**. A glossary grounded in the team's own Dekereke column
+  names is in the session scratchpad. **Stopped because Kent would reasonably
+  want a native speaker to check it, and Seth does not have time to arrange that
+  now.** Do not restart without that.
+
+## Next session: the A-Z+T test drive
+
+Import a real Fayu database and walk Seth through A-Z+T screen by screen, so he
+can judge fit himself. His data:
+`/Users/Seth/Documents/GIT/dekereke_fayu/Fayu_stable.xml` (a git repo of
+Dekereke backups; `Fayu_stable.xml` is the working copy). Another copy, with a
+`-DkUserSettings.xml` beside it, is in `~/Desktop/Dekereke dari Pk Seth/`.
+
+**Do the digraph settings first**, before any sorting — see the finding above.
+Then decide, with the data in front of you, whether paradigm columns
+(`CMPLalt`, `INCMP`, `IMP-re`, `SVC`, `SEQ`) belong as **frames** (sortable,
+tone twins have a home) or as **second-form fields** (A-Z+T's native
+plural/imperative machinery, which is coded but reachable from no menu —
+`tasks/chooser.py:159-201`, a two-line fix worth asking Kent for).
+
+The question the test drive has to answer: **does one-form-per-word cost too
+much**, given rampant free variation across speakers and dialects.
