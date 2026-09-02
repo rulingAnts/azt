@@ -401,3 +401,49 @@ def test_export_refuses_a_column_name_xml_cannot_write(tmp_path):
     with pytest.raises(dekereke.Error) as caught:
         dekereke.todekereke(lift, tmp_path / "out.xml", dekerekefilename=path)
     assert "2ndSpeaker" in str(caught.value)
+
+
+# --- the whole path a user actually takes ------------------------------------
+
+@pytest.mark.integration
+def test_a_dekereke_database_becomes_a_project_azt_can_open(tmp_path, monkeypatch):
+    """End to end: pick a Dekereke file, confirm the columns, and A-Z+T opens
+    the result as a project — the path the Import option in the database
+    chooser runs."""
+    import types
+
+    from backend.core import templates
+    from utilities import file as fileutil
+
+    monkeypatch.setattr(fileutil, "gethome", lambda: tmp_path)
+
+    class Languages:
+        def get_obj(self, code):
+            from backend import langtags
+
+            return langtags.langcodes.Language.get(code)
+
+    program = types.SimpleNamespace(languages=Languages(), name="A-Z+T")
+    dk, map = mapped(write(tmp_path))
+    template = templates.Dekereke(
+        program, source=dk, columnmap=map, analang="fau")
+
+    assert template.error_text is None
+    assert template.entries == 1
+    assert len(template.db.senses) == 1
+    assert template.db.analangs == ["fau"]
+    assert template.db.glosslangs == ["id"]
+    assert dekereke.sidecarname(template.filename).exists()
+
+
+@pytest.mark.integration
+def test_cancelling_the_column_dialog_leaves_no_project(tmp_path):
+    """A template built without a language code must do nothing at all, since
+    that is what the chooser constructs when the user cancels."""
+    import types
+
+    from backend.core import templates
+
+    template = templates.Dekereke(types.SimpleNamespace(name="A-Z+T"))
+    assert template.db is None
+    assert template.entries == 0

@@ -327,6 +327,27 @@ class ColumnMap(object):
                 map.suffixes[column]=node.get('suffix')
         return map
 
+def rolelabels():
+    """What to call each role in front of a user. A linguist should not have to
+    know the word ‘role’, only what A-Z+T will do with the column."""
+    return [
+        ('phonetic',    _("the form to sort and analyze")),
+        ('orthographic',_("how it is written")),
+        ('phonemic',    _("phonemic form")),
+        ('gloss',       _("meaning")),
+        ('pos',         _("part of speech")),
+        ('audio',       _("sound file")),
+        ('reference',   _("record number")),
+        ('note',        _("note")),
+        ('tone',        _("tone")),
+        ('cvprofile',   _("syllable profile")),
+        ('frame',       _("a frame A-Z+T can sort")),
+        ('pitchtwin',   _("the tone of a frame")),
+        ('skipflag',    _("skip records marked here")),
+        ('field',       _("keep it, but don’t analyze it")),
+        ('ignore',      _("leave it out")),
+        ]
+
 def sidecarname(liftfilename):
     return pathlib.Path(liftfilename).with_suffix(SIDECARSUFFIX)
 
