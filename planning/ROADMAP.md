@@ -229,3 +229,30 @@ plural/imperative machinery, which is coded but reachable from no menu —
 
 The question the test drive has to answer: **does one-form-per-word cost too
 much**, given rampant free variation across speakers and dialects.
+
+---
+
+## Future research question (noted 2026-09-02, not started)
+
+**Can Phonology Assistant read A-Z+T's LIFT output directly, or does it require an
+actual FLEx database?**
+
+PA's data-source list includes FieldWorks projects, Toolbox SFM and a few others;
+whether it can take a plain LIFT file — and specifically the header-less,
+non-namespaced LIFT profile A-Z+T writes (see `planning/research/lift-profile.md`)
+— is unestablished.
+
+If it cannot, build a **PA add-on presenting A-Z+T LIFT as a data source**, and
+offer it upstream, so anyone using A-Z+T can also open their data in Phonology
+Assistant if they want or need to.
+
+The architecture is already proven: `rulingAnts/dekereke-pa-data-source` does
+exactly this for Dekereke XML — PA scans `<install>\AddOns\*.dll` for a
+`PaAddOnManager` class, and the add-on hooks `BeforeLoadingDataSources` /
+`AfterLoadingDataSources` to swap in a generated, fully field-mapped Toolbox SFM
+file for the duration of the read. An A-Z+T variant would differ only in the
+reader (LIFT instead of Dekereke) and the field mapping. `HANDOFF.md` in that
+repo has every hook point with PA source line references.
+
+Worth checking first, cheaply: whether PA 4.x already accepts LIFT, and whether
+`docs/FLEX_COLLABORATION.md` says anything about the PA path.
