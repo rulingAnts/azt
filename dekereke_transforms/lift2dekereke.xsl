@@ -127,9 +127,14 @@
       <xsl:when test="$role='tone'">
         <xsl:value-of select="$entry/sense/field[@type='tone']/form/text"/>
       </xsl:when>
+      <xsl:when test="$role='cvprofileok'">
+        <!-- the confirmed form: what the speaker's sorting was organised by -->
+        <xsl:value-of select="$entry/sense/field[@type='cvprofile_lc']
+                    /form[@lang=concat($analang,'-x-cvprofile')]/text"/>
+      </xsl:when>
       <xsl:when test="$role='cvprofile'">
-        <xsl:value-of
-            select="$entry/sense/field[@type='cvprofile_lc']/form/text"/>
+        <xsl:value-of select="$entry/sense/field[@type='cvprofile_lc']
+                    /form[@lang=concat($analang,'-x-cvprofile_MT')]/text"/>
       </xsl:when>
       <xsl:when test="$role='field'">
         <xsl:variable name="type" select="string($m/column[@name=$col]/@field)"/>

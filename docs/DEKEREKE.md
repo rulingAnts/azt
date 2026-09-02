@@ -64,6 +64,25 @@ frame machinery for something close to, but not the same as, what it was built
 for. It works, and it is worth knowing about; the reports will still call these
 frames.
 
+### If you keep your own syllable profile column
+
+Some workflows have the researcher decide each word's syllable profile by hand,
+in a column of the Dekereke database, rather than letting software guess it from
+the spelling. If that is how you work, mark that column **syllable profile
+(already checked)**.
+
+A-Z+T organises every segmental sort by syllable profile, and it distinguishes a
+profile *it* guessed from one *you* confirmed: it slices by the confirmed one,
+and its fill-in pass never overwrites a profile that is already there. So a
+column marked *already checked* is taken as it stands, and A-Z+T works from your
+analysis instead of its own.
+
+Mark the column **syllable profile (a guess to check)** instead if it was
+auto-generated. A-Z+T will then treat it as a starting point to be confirmed.
+
+If you use *already checked*, the digraph settings below matter much less for
+your data — A-Z+T will not be deriving your profiles.
+
 ### Check the digraph settings before you sort
 
 Do this once, right after importing, before any sorting:

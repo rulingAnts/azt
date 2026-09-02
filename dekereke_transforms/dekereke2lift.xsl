@@ -33,6 +33,7 @@
 <xsl:variable name="g1" select="string($m/@g1)"/>
 <xsl:variable name="tonelang" select="concat($analang,'-x-tone_MT')"/>
 <xsl:variable name="profilelang" select="concat($analang,'-x-cvprofile_MT')"/>
+<xsl:variable name="okprofilelang" select="concat($analang,'-x-cvprofile')"/>
 <xsl:variable name="phoncol" select="string($m/column[@role='phonetic']/@name)"/>
 <xsl:variable name="refcol" select="string($m/column[@role='reference']/@name)"/>
 
@@ -206,10 +207,23 @@
         </xsl:if>
       </xsl:for-each>
 
-      <xsl:for-each select="$m/column[@role='cvprofile']">
+      <!--
+          A-Z+T slices words by the CONFIRMED profile (the plain form) and only
+          fills in from the machine form (…_MT) where there is no confirmed one,
+          never overwriting it. So a syllable-profile column the researcher
+          curated by hand goes in the plain form and is honoured as it stands;
+          one that was auto-generated goes in the machine form, where A-Z+T
+          will treat it as a guess to be checked.
+      -->
+      <xsl:for-each select="$m/column[@role='cvprofileok' or @role='cvprofile']">
         <xsl:variable name="col" select="string(@name)"/>
         <xsl:if test="normalize-space($rec/*[name()=$col])">
           <field type="cvprofile_lc">
+            <xsl:if test="@role='cvprofileok'">
+              <form lang="{$okprofilelang}">
+                <text><xsl:value-of select="normalize-space($rec/*[name()=$col])"/></text>
+              </form>
+            </xsl:if>
             <form lang="{$profilelang}">
               <text><xsl:value-of select="normalize-space($rec/*[name()=$col])"/></text>
             </form>

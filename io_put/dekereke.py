@@ -173,8 +173,8 @@ PARADIGMCUES=['cmpl','incmp','imp','svc','seq','pl','perf','jamak','perintah']
 SPEAKERCUES=['speaker','penutur']
 PITCHSUFFIX='_Pitch'
 ROLES=['phonetic','reference','tone','phonemic','gloss','pos','orthographic',
-        'audio','note','cvprofile','skipflag','frame','pitchtwin','field',
-        'ignore']
+        'audio','note','cvprofile','cvprofileok','skipflag','frame','pitchtwin',
+        'field','ignore']
 
 class ColumnMap(object):
     """Which column plays which role. Guessed, then confirmed by the user:
@@ -340,7 +340,8 @@ def rolelabels():
         ('reference',   _("record number")),
         ('note',        _("note")),
         ('tone',        _("tone")),
-        ('cvprofile',   _("syllable profile")),
+        ('cvprofileok', _("syllable profile (already checked)")),
+        ('cvprofile',   _("syllable profile (a guess to check)")),
         ('frame',       _("a frame A-Z+T can sort")),
         ('pitchtwin',   _("the tone of a frame")),
         ('skipflag',    _("skip records marked here")),

@@ -447,3 +447,36 @@ def test_cancelling_the_column_dialog_leaves_no_project(tmp_path):
     template = templates.Dekereke(types.SimpleNamespace(name="A-Z+T"))
     assert template.db is None
     assert template.entries == 0
+
+
+# --- a researcher's curated syllable profiles --------------------------------
+
+def profiled(tmp_path, role):
+    """A database whose SyllableProfile column the researcher filled in."""
+    path = write(tmp_path)
+    path.write_bytes(path.read_bytes().replace(
+        b"<Tulisan>tei</Tulisan>",
+        b"<Tulisan>tei</Tulisan><SyllableProfile>CVV</SyllableProfile>"))
+    dk, map = mapped(path)
+    map.roles["SyllableProfile"] = role
+    lift = tmp_path / "SampleLang.lift"
+    dekereke.tolift(dk, map, lift)
+    return lxml.etree.parse(str(lift))
+
+
+def test_a_checked_profile_column_is_imported_as_confirmed(tmp_path):
+    """A-Z+T slices by the confirmed profile and never overwrites it, so a
+    column the researcher curated by hand must land in the plain form — that
+    is what makes A-Z+T defer to their analysis instead of its own guess."""
+    tree = profiled(tmp_path, "cvprofileok")
+    assert tree.xpath("//field[@type='cvprofile_lc']"
+                      "/form[@lang='fau-x-cvprofile']/text/text()") == ["CVV"]
+
+
+def test_an_unchecked_profile_column_is_imported_as_a_guess(tmp_path):
+    """Auto-generated profiles go in the machine form, where A-Z+T treats them
+    as something still to be checked."""
+    tree = profiled(tmp_path, "cvprofile")
+    assert tree.xpath("//field[@type='cvprofile_lc']"
+                      "/form[@lang='fau-x-cvprofile_MT']/text/text()") == ["CVV"]
+    assert not tree.xpath("//form[@lang='fau-x-cvprofile']")
